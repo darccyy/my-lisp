@@ -2,9 +2,14 @@ use std::fmt::Debug;
 
 use Parsed::*;
 
+use crate::Compiled;
+
+/// Parsed, uncompiled text
 #[derive(Clone)]
 pub enum Parsed {
+    /// Single item token
     Item(String),
+    /// List of items
     List(Vec<Parsed>),
 }
 
@@ -17,10 +22,19 @@ impl Debug for Parsed {
     }
 }
 
-pub fn parse(text: &str) -> Parsed {
-    List(parse_branch(text, 0).0)
+impl Parsed {
+    /// Parse uncompiled script from text
+    pub fn from(text: &str) -> Parsed {
+        List(parse_branch(text, 0).0)
+    }
+
+    /// Compile script from parsed text
+    pub fn compile(self) -> Compiled {
+        Compiled::from(self)
+    }
 }
 
+/// Parse single branch, recursively
 fn parse_branch(text: &str, recursion: usize) -> (Vec<Parsed>, usize) {
     // Check recursion limit
     assert!(recursion < 100, "Recursion limit [debug]");

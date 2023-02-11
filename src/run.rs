@@ -1,5 +1,11 @@
-use crate::compile::{Compiled, Value};
+use crate::compile::{
+    Compiled,
+    Value::{self, *},
+};
 
-pub fn run(_compiled: Compiled) -> Value {
-    todo!()
+impl Compiled {
+    /// Run compiled script, returning last value
+    pub fn run(self) -> Value {
+        Null
+    }
 }
