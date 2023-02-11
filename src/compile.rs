@@ -21,9 +21,9 @@ pub enum Value {
 impl Debug for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Null => write!(f, "ɴᴜʟʟ"),
-            Int(int) => write!(f, "ɪɴᴛ {}", int),
-            Str(string) => write!(f, "sᴛʀ '{}'", string),
+            Null => write!(f, "\x1b[38;2;247;140;108mɴᴜʟʟ\x1b[0m"),
+            Int(int) => write!(f, "\x1b[33m{}\x1b[0m", int),
+            Str(string) => write!(f, "\x1b[32m'{}'\x1b[0m", string),
         }
     }
 }
@@ -75,9 +75,9 @@ impl Debug for Method {
             Method::Many(vec) => {
                 write!(
                     f,
-                    "{{\n{}\n}}",
+                    "\x1b[35m{{\x1b[0m\n{}\n\x1b[35m}}\x1b[0m",
                     vec.iter()
-                        .map(|item| format!("  {:?};", item))
+                        .map(|item| format!("  {:?}", item))
                         .collect::<Vec<_>>()
                         .join("\n")
                 )
@@ -85,10 +85,18 @@ impl Debug for Method {
 
             Method::Literal(value) => write!(f, "{:?}", value),
 
-            Method::Print(value) => write!(f, "Print {:?}", value),
+            Method::Print(value) => write!(f, "\x1b[34mPrint\x1b[0m {:?}", value),
 
-            Method::Add(rhs, lhs) => write!(f, "({:?} + {:?})", rhs, lhs),
-            Method::Mul(rhs, lhs) => write!(f, "({:?} * {:?})", rhs, lhs),
+            Method::Add(rhs, lhs) => write!(
+                f,
+                "\x1b[36m(\x1b[0m{:?} \x1b[35m+\x1b[0m {:?}\x1b[36m)\x1b[0m",
+                rhs, lhs
+            ),
+            Method::Mul(rhs, lhs) => write!(
+                f,
+                "\x1b[36m(\x1b[0m{:?} \x1b[35m*\x1b[0m {:?}\x1b[36m)\x1b[0m",
+                rhs, lhs
+            ),
         }
     }
 }
