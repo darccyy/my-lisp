@@ -1,72 +1,20 @@
 use std::fmt::Debug;
 
-use crate::parse::Parsed;
-
-use Compiled::*;
-use Value::*;
-
-/// Weakly-typed variable value
-///
-/// Similar to JSON
-#[derive(Clone)]
-pub enum Value {
-    /// Null value
-    Null,
-    /// Integer
-    Int(i32),
-    /// String
-    Str(String),
-}
-
-impl Debug for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Null => write!(f, "\x1b[38;2;247;140;108mɴᴜʟʟ\x1b[0m"),
-            Int(int) => write!(f, "\x1b[33m{}\x1b[0m", int),
-            Str(string) => write!(f, "\x1b[32m'{}'\x1b[0m", string),
-        }
-    }
-}
-
-impl Value {
-    /// Parse `Value` from string
-    pub fn from(string: &str) -> Self {
-        // Null
-        if string == "NUL" {
-            return Null;
-        }
-
-        // String
-        if string.starts_with('\'') && string.ends_with('\'')
-            || string.starts_with('"') && string.ends_with('"')
-        {
-            // Remove first and last characters
-            let mut chars = string.chars();
-            chars.next();
-            chars.next_back();
-            return Str(chars.as_str().to_string());
-        }
-
-        // Integer
-        Int(string
-            .parse()
-            .expect(&format!("Could not parse '{}' as integer", string)))
-    }
-}
+use crate::{parse::Tree, value::Value};
 
 /// Compiled function
 #[derive(Clone)]
 pub enum Method {
     /// List of many compiled items
-    Many(Vec<Compiled>),
+    Many(Vec<Method>),
     /// Literal value
     Literal(Value),
     /// Print value to stdout
-    Print(Box<Compiled>),
+    Print(Box<Method>),
     /// Add values
-    Add(Box<Compiled>, Box<Compiled>),
+    Add(Box<Method>, Box<Method>),
     /// Multiply values
-    Mul(Box<Compiled>, Box<Compiled>),
+    Mul(Box<Method>, Box<Method>),
 }
 
 impl Debug for Method {
@@ -101,40 +49,22 @@ impl Debug for Method {
     }
 }
 
-/// Compiled script object
-#[derive(Clone)]
-pub enum Compiled {
-    /// Single method item
-    Item(Method),
-    /// List of compiled branches
-    List(Vec<Compiled>),
-}
-
-impl Debug for Compiled {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Item(item) => write!(f, "{:?}", item),
-            List(list) => write!(f, "{:?}", list),
-        }
-    }
-}
-
-impl Compiled {
+impl Method {
     /// Compile script from parsed text
-    pub fn from(parsed: Parsed) -> Self {
+    pub fn from(parsed: Tree) -> Self {
         compile_branch(&parsed, 0)
     }
 }
 
 /// Compile single branch, recursively
-fn compile_branch(parsed: &Parsed, recursion: usize) -> Compiled {
+fn compile_branch(parsed: &Tree, recursion: usize) -> Method {
     match parsed {
         // Single item
         // Parse value - must be literal
-        Parsed::Item(item) => Item(Method::Literal(Value::from(item))),
+        Tree::Item(item) => Method::Literal(Value::from(item)),
 
         // List of items
-        Parsed::List(list) => {
+        Tree::List(list) => {
             let mut it = list.iter();
 
             // Get operator of method
@@ -144,13 +74,13 @@ fn compile_branch(parsed: &Parsed, recursion: usize) -> Compiled {
             };
 
             // Unwrap operator
-            let Parsed::Item(op) = op else {
+            let Tree::Item(op) = op else {
                 // Otherwise return list of many compiled methods
-                return Item(Method::Many(
+                return Method::Many(
                     list.iter()
                         .map(|item| compile_branch(item, recursion + 1))
                         .collect()
-                    ));
+                    );
             };
 
             /// Match operator and arguments to method
@@ -194,11 +124,11 @@ fn compile_branch(parsed: &Parsed, recursion: usize) -> Compiled {
             }
 
             // Match operators
-            Item(match_operator! {
+            match_operator! {
                 Print: print value,
-                Add: + rhs lhs,
-                Mul: * rhs lhs,
-            })
+                Add: + lhs rhs,
+                Mul: * lhs rhs,
+            }
         }
     }
 }

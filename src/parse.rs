@@ -1,19 +1,19 @@
 use std::fmt::Debug;
 
-use Parsed::*;
+use Tree::*;
 
-use crate::Compiled;
+use crate::Method;
 
 /// Parsed, uncompiled text
 #[derive(Clone)]
-pub enum Parsed {
+pub enum Tree {
     /// Single item token
     Item(String),
     /// List of items
-    List(Vec<Parsed>),
+    List(Vec<Tree>),
 }
 
-impl Debug for Parsed {
+impl Debug for Tree {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Item(item) => write!(f, "{:?}", item),
@@ -22,25 +22,25 @@ impl Debug for Parsed {
     }
 }
 
-impl Parsed {
+impl Tree {
     /// Parse uncompiled script from text
-    pub fn from(text: &str) -> Parsed {
+    pub fn from(text: &str) -> Tree {
         List(parse_branch(text, 0).0)
     }
 
     /// Compile script from parsed text
-    pub fn compile(self) -> Compiled {
-        Compiled::from(self)
+    pub fn compile(self) -> Method {
+        Method::from(self)
     }
 }
 
 /// Parse single branch, recursively
-fn parse_branch(text: &str, recursion: usize) -> (Vec<Parsed>, usize) {
+fn parse_branch(text: &str, recursion: usize) -> (Vec<Tree>, usize) {
     // Check recursion limit
     assert!(recursion < 100, "Recursion limit [debug]");
 
     // List building
-    let mut list: Vec<Parsed> = vec![];
+    let mut list: Vec<Tree> = vec![];
     let mut item_building = String::new();
 
     // Loop over characters

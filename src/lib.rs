@@ -3,24 +3,30 @@
 mod compile;
 mod parse;
 mod run;
+mod value;
 
-pub use {compile::*, parse::*, run::*};
+pub use {compile::*, parse::*, run::*, value::*};
 
 /// Run script file
 pub fn run(file: &str) -> Value {
-    Parsed::from(file).compile().run()
+    Tree::from(file).compile().run()
 }
 
 /// Run script file, printing parse and compile steps
 pub fn run_steps(file: &str) -> Value {
-    let parsed = Parsed::from(file);
-    println!("\t\x1b[36mᴘᴀʀsᴇ\x1b[0m\n{:?}", parsed);
+    println!("\n\t\x1b[36mꜰɪʟᴇ\x1b[0m\n{}", file.trim());
 
+    println!("\n\t\x1b[36mᴘᴀʀsᴇ\x1b[0m");
+    let parsed = Tree::from(file);
+    println!("{:?}", parsed);
+
+    println!("\n\t\x1b[36mᴄᴏᴍᴘɪʟᴇ\x1b[0m");
     let compiled = parsed.compile();
-    println!("\t\x1b[36mᴄᴏᴍᴘɪʟᴇ\x1b[0m\n{:?}", compiled);
+    println!("{:?}", compiled);
 
+    println!("\n\t\x1b[36mʀᴜɴ\x1b[0m");
     let result = compiled.run();
-    println!("\t\x1b[36mʀᴜɴ\x1b[0m\n{:?}", result);
 
+    println!("\n\t\x1b[36mʀᴇsᴜʟᴛ\n>>\x1b[0m {:?}", result);
     result
 }
