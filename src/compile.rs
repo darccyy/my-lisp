@@ -20,6 +20,18 @@ impl Debug for Value {
     }
 }
 
+impl Value {
+    pub fn from(string: &str) -> Self {
+        if string == "NUL" {
+            return Null;
+        }
+
+        Int(string
+            .parse()
+            .expect(&format!("Could not parse '{}' as integer", string)))
+    }
+}
+
 #[derive(Clone)]
 pub enum Method {
     Many(Vec<Compiled>),
@@ -73,37 +85,54 @@ pub fn compile(parsed: Parsed) -> Compiled {
 }
 
 fn compile_branch(parsed: &Parsed, recursion: usize) -> Compiled {
-    let indent = "  ".repeat(recursion);
-
-    println!("{}\x1b[32mRUN\x1b[0m {:?}", indent, parsed);
-
     match parsed {
-        Parsed::Item(item) => Item(Method::Literal(Int(item
-            .parse()
-            .expect(&format!("Could not parse {}", item))))),
+        // Single item
+        // Parse value - must be literal
+        Parsed::Item(item) => Item(Method::Literal(Value::from(item))),
 
+        // List of items
         Parsed::List(list) => {
             let mut it = list.iter();
 
+            // Get operator of method
+            // No operator must mean empty brackets
             let Some(op) = it.next() else {
-                panic!("No operator");
+                panic!("No operator - Empty brackets");
             };
 
-            println!("{}\x1b[36mOP\x1b[0m {:?}", indent, op);
-
+            // Unwrap operator
             let Parsed::Item(op) = op else {
-                let vec = list.iter().map(|item|compile_branch(item, recursion+1 )).collect();
-
-                return Item(Method::Many(vec));
+                // Otherwise return list of many compiled methods
+                return Item(Method::Many(
+                    list.iter()
+                        .map(|item| compile_branch(item, recursion + 1))
+                        .collect()
+                    ));
             };
 
-            macro match_operator( $( $name: ident : $op: tt $( $arg: ident )* ),*  $(,)? ) {
+            /// Match operator and arguments to method
+            macro match_operator(
+                // List of methods, operators, and arguments
+                $(
+                    // Name of method
+                    $method: ident
+                    // Operator, as token tree (so that arithmetic operators can be used)
+                    : $op: tt
+                    // List of arguments names, as identifiers
+                    $( $arg: ident )*
+                ),*  $(,)?
+            ) {
+                // Match operator
                 match op.as_str() {
                     $(
+                        // Operator
                         stringify!($op) => {
-                            Method::$name(
+                            // Return matching method
+                            Method::$method(
                                 $(
+                                    // Include arguments, compiled recursively
                                     box compile_branch(
+                                        // Next item of iterated list
                                         it.next().expect(&format!(
                                             "Missing argument '{}', for '{}' operator",
                                             stringify!($arg),
@@ -116,10 +145,12 @@ fn compile_branch(parsed: &Parsed, recursion: usize) -> Compiled {
                         }
                     )*
 
+                    // Fallback - Error
                     op => panic!("Unknown operator '{}'", op),
                 }
             }
 
+            // Match operators
             Item(match_operator! {
                 Print: print value,
                 Add: + rhs lhs,
